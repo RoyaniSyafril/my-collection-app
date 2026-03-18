@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Collection App</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Katalog Koleksi Digital</h1>
+    </header>
+    <main id="collection-container"></main>
+    <script>
+      // Script sederhana untuk mengambil data JSON
+      fetch("data.json")
+        .then((response) => response.json())
+        .then((data) => {
+          const container = document.getElementById("collection-container");
+          data.forEach((item) => {
+            const card = `
+                        <div class="card">
+                            <img src="${item.gambar_url}" alt="${item.nama_barang}">
+                            <h3>${item.nama_barang}</h3>
+                            <p>Kategori: ${item.kategori}</p>
+                            <p>Kondisi: <strong>${item.kondisi}</strong></p>
+                        </div>`;
+            container.innerHTML += card;
+          });
+        });
+    </script>
+  </body>
+</html>
