@@ -1,33 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Collection App</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
     <header>
-      <h1>Katalog Koleksi Digital</h1>
+        <h1>Katalog Koleksi Digital</h1>
     </header>
+
+    <div class="search-section">
+        <div>
+            <input type="text" id="search-input" placeholder="Cari koleksi Anda...">
+        </div><br>
+        <div id="counter">Menampilkan 0 barang</div><br>
+    </div>
+
     <main id="collection-container"></main>
+
     <script>
-      // Script sederhana untuk mengambil data JSON
-      fetch("data.json")
-        .then((response) => response.json())
-        .then((data) => {
-          const container = document.getElementById("collection-container");
-          data.forEach((item) => {
-            const card = `
-                        <div class="card">
-                            <img src="${item.gambar_url}" alt="${item.nama_barang}">
-                            <h3>${item.nama_barang}</h3>
-                            <p>Kategori: ${item.kategori}</p>
-                            <p>Kondisi: <strong>${item.kondisi}</strong></p>
-                        </div>`;
-            container.innerHTML += card;
-          });
-        });
+        let allData = [];
+        const container = document.getElementById('collection-container');
+        const searchInput = document.getElementById('search-input');
+        const counter = document.getElementById('counter');
+
+        // 1. Mengambil data dari JSON (Tugas 1)
+        fetch('data.json')
+            .then(res => res.json())
+            .then(data => {
+                allData = data;
+                renderData(allData); // Tampilkan semua data di awal
+            })
+            .catch(err => console.error("Gagal memuat data:", err));
+
+        // 2. Fungsi untuk menampilkan kartu ke HTML (Tugas 1 & 2)
+        function renderData(items) {
+            container.innerHTML = items.map(item => `
+                <div class="card">
+                    <img src="${item.gambar_url}" alt="${item.nama_barang}">
+                    <div class="card-info">
+                        <h3>${item.nama_barang}</h3>
+                        <p>Kategori: ${item.kategori}</p>
+                        <p>Kondisi: <strong>${item.kondisi}</strong></p>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Update jumlah barang yang ditemukan (Tugas 2)
+            counter.innerText = `Menampilkan ${items.length} barang`;
+        }
+
+        // 3. Logika Filter Pencarian (Multi-kriteria: Nama, Kategori, Kondisi)
+searchInput.addEventListener('input', (e) => {
+    const val = e.target.value.toLowerCase();
+    
+    const filtered = allData.filter(item => {
+        // Mengecek apakah kata kunci ada di Nama, Kategori, atau Kondisi
+        return (
+            item.nama_barang.toLowerCase().includes(val) || 
+            item.kategori.toLowerCase().includes(val) || 
+            item.kondisi.toLowerCase().includes(val)
+        );
+    });
+
+    renderData(filtered);
+});
     </script>
-  </body>
+</body>
 </html>
