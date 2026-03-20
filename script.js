@@ -58,22 +58,32 @@ function renderData(items) {
 // Langkah 3: Menambah Data (Create)
 addForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const file = document.getElementById('gambar_url').files[0];
     
-    const newData = {
-        nama_barang: document.getElementById('nama-barang').value,
-        kategori: document.getElementById('kategori-barang').value,
-        kondisi: document.getElementById('kondisi-barang').value,
-        harga_estimasi: Number(document.getElementById('harga-barang').value),
-        gambar_url: "https://via.placeholder.com/150", // Placeholder gambar
-        createdAt: new Date()
-    };
+    if (!file) return Swal.fire('Peringatan', 'Mohon pilih foto koleksi!', 'warning');
+
+    Swal.fire({ title: 'Sedang mengunggah...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
 
     try {
-        await addDoc(itemsCol, newData); // Mengirim data ke Firestore
+        // 1. Upload ke Storage
+        const storageRef = ref(storage, 'koleksi/' + file.name);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+
+        // 2. Simpan URL ke Firestore
+        await addDoc(itemsCol, {
+            nama_barang: document.getElementById('nama-barang').value,
+            kategori: document.getElementById('kategori-barang').value,
+            kondisi: document.getElementById('kondisi-barang').value,
+            harga_estimasi: Number(document.getElementById('harga-barang').value),
+            gambar_url: downloadURL, // URL asli dari Cloud Storage
+            createdAt: new Date()
+        });
+
+        Swal.fire('Berhasil!', 'Koleksi baru telah ditambahkan.', 'success');
         addForm.reset();
-        alert("Data koleksi berhasil disimpan ke Cloud!");
     } catch (error) {
-        console.error("Gagal menyimpan data:", error);
+        Swal.fire('Error', 'Proses gagal: ' + error.message, 'error');
     }
 });
 
