@@ -1,6 +1,14 @@
-// Langkah 1: Inisialisasi Firebase [cite: 30]
+// Langkah 1: Inisialisasi Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-storage.js";
+import { doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+// Import SweetAlert2 via CDN
+import Swal from 'https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.js';
+
+// Inisialisasi Storage
+const storage = getStorage(app);
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx_HALPC_FweyKTIKUp1XsvXclUbyyAIY",
@@ -14,7 +22,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const itemsCol = collection(db, "items"); // Koleksi bernama 'items' di Firestore [cite: 18]
+const itemsCol = collection(db, "items"); // Koleksi bernama 'items' di Firestore
 
 // Variabel Global
 let allData = [];
@@ -23,9 +31,9 @@ const searchInput = document.getElementById('search-input');
 const counter = document.getElementById('counter');
 const addForm = document.getElementById('add-form');
 
-// Langkah 2: Menampilkan Data secara Real-time (Read) [cite: 19, 42]
+// Langkah 2: Menampilkan Data secara Real-time (Read) 
 onSnapshot(itemsCol, (snapshot) => {
-    // Mengambil data dari Firestore dan menyimpannya ke array allData [cite: 23]
+    // Mengambil data dari Firestore dan menyimpannya ke array allData
     allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderData(allData);
 });
@@ -40,12 +48,14 @@ function renderData(items) {
                 <p>Kondisi: <strong>${item.kondisi}</strong></p>
                 <p>Harga: Rp${Number(item.harga_estimasi).toLocaleString()}</p>
             </div>
+            // Di dalam loop renderData:
+<button onclick="hapusKoleksi('${item.id}')" class="btn-hapus">Hapus</button>
         </div>
     `).join('');
     counter.innerText = `Menampilkan ${items.length} barang`;
 }
 
-// Langkah 3: Menambah Data (Create) [cite: 22, 43]
+// Langkah 3: Menambah Data (Create)
 addForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -59,7 +69,7 @@ addForm.addEventListener('submit', async (e) => {
     };
 
     try {
-        await addDoc(itemsCol, newData); // Mengirim data ke Firestore [cite: 33, 43]
+        await addDoc(itemsCol, newData); // Mengirim data ke Firestore
         addForm.reset();
         alert("Data koleksi berhasil disimpan ke Cloud!");
     } catch (error) {
@@ -67,7 +77,7 @@ addForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Integrasi Fitur Lama: Search (Tugas 2) [cite: 24]
+// Integrasi Fitur Lama: Search (Tugas 2) 
 searchInput.addEventListener('input', (e) => {
     const val = e.target.value.toLowerCase();
     const filtered = allData.filter(item => 
@@ -77,3 +87,26 @@ searchInput.addEventListener('input', (e) => {
     );
     renderData(filtered);
 });
+
+// Fungsi Hapus dengan SweetAlert2 (Tugas 4)
+window.hapusKoleksi = async (id) => {
+    const result = await Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: "Data yang dihapus tidak bisa dikembalikan!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, Hapus!'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const docRef = doc(db, "items", id);
+            await deleteDoc(docRef);
+            Swal.fire('Terhapus!', 'Koleksi berhasil dibuang.', 'success');
+        } catch (error) {
+            Swal.fire('Error', 'Gagal menghapus data', 'error');
+        }
+    }
+};
