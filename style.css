@@ -158,3 +158,18 @@ input:focus {
     header h1 { font-size: 1.5rem; }
     #collection-container { grid-template-columns: 1fr; }
 }
+
+.btn-hapus {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.3s;
+}
+
+.btn-hapus:hover {
+    background-color: #cc0000;
+}
