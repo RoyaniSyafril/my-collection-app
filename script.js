@@ -1,6 +1,15 @@
 // Langkah 1: Inisialisasi Firebase [cite: 30]
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+// Digabung menjadi satu baris:
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    onSnapshot, 
+    doc, 
+    deleteDoc 
+} from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyDx_HALPC_FweyKTIKUp1XsvXclUbyyAIY",
@@ -39,6 +48,7 @@ function renderData(items) {
                 <p>Kategori: ${item.kategori}</p>
                 <p>Kondisi: <strong>${item.kondisi}</strong></p>
                 <p>Harga: Rp${Number(item.harga_estimasi).toLocaleString()}</p>
+                <button onclick="hapusKoleksi('${item.id}')" class="btn-hapus">Hapus</button>
             </div>
         </div>
     `).join('');
@@ -77,3 +87,38 @@ searchInput.addEventListener('input', (e) => {
     );
     renderData(filtered);
 });
+
+
+window.hapusKoleksi = async (id) => {
+    // 1. Munculkan Konfirmasi (UI/UX)
+    const result = await Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: "Koleksi ini akan dihapus permanen dari Cloud!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Ya, Hapus!'
+    });
+
+    // 2. Jika user klik "Ya"
+    if (result.isConfirmed) {
+        try {
+            // Referensi ke dokumen spesifik berdasarkan ID
+            const docRef = doc(db, "items", id); 
+            
+            // Proses hapus di Firestore
+            await deleteDoc(docRef);
+
+            // Notifikasi Berhasil
+            Swal.fire(
+                'Terhapus!',
+                'Koleksi berhasil dihilangkan.',
+                'success'
+            );
+        } catch (error) {
+            console.error("Error saat menghapus:", error);
+            Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus data.', 'error');
+        }
+    }
+};
