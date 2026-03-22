@@ -1,40 +1,40 @@
-// Langkah 1: Inisialisasi Firebase [cite: 30]
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-// Digabung menjadi satu baris:
 import { 
-    getFirestore, 
-    collection, 
-    addDoc, 
-    onSnapshot, 
-    doc, 
-    deleteDoc 
+    getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc 
 } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
-
 const firebaseConfig = {
-  apiKey: "AIzaSyDx_HALPC_FweyKTIKUp1XsvXclUbyyAIY",
-  authDomain: "my-collection-app-7aac0.firebaseapp.com",
-  projectId: "my-collection-app-7aac0",
-  storageBucket: "my-collection-app-7aac0.firebasestorage.app",
-  messagingSenderId: "323464497902",
-  appId: "1:323464497902:web:2d4f9f108612e909ef41ff",
-  measurementId: "G-L9GYK6YBT3"
+    apiKey: "AIzaSyDx_HALPC_FweyKTIKUp1XsvXclUbyyAIY",
+    authDomain: "my-collection-app-7aac0.firebaseapp.com",
+    projectId: "my-collection-app-7aac0",
+    storageBucket: "my-collection-app-7aac0.firebasestorage.app",
+    messagingSenderId: "323464497902",
+    appId: "1:323464497902:web:2d4f9f108612e909ef41ff",
+    measurementId: "G-L9GYK6YBT3"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const itemsCol = collection(db, "items"); // Koleksi bernama 'items' di Firestore [cite: 18]
+const itemsCol = collection(db, "items");
 
-// Variabel Global
 let allData = [];
 const container = document.getElementById('collection-container');
 const searchInput = document.getElementById('search-input');
 const counter = document.getElementById('counter');
 const addForm = document.getElementById('add-form');
 
-// Langkah 2: Menampilkan Data secara Real-time (Read) [cite: 19, 42]
+// --- FUNGSI PEMBANTU: Konversi Gambar ke Base64 ---
+const convertBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+        const fileReader = new FileReader();
+        fileReader.readAsDataURL(file);
+        fileReader.onload = () => resolve(fileReader.result);
+        fileReader.onerror = (error) => reject(error);
+    });
+};
+
+// 1. READ: Menampilkan Data Real-time
 onSnapshot(itemsCol, (snapshot) => {
-    // Mengambil data dari Firestore dan menyimpannya ke array allData [cite: 23]
     allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderData(allData);
 });
@@ -55,29 +55,72 @@ function renderData(items) {
     counter.innerText = `Menampilkan ${items.length} barang`;
 }
 
-// Langkah 3: Menambah Data (Create) [cite: 22, 43]
+// 2. CREATE: Tambah Data dengan Base64 Upload
 addForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const newData = {
-        nama_barang: document.getElementById('nama-barang').value,
-        kategori: document.getElementById('kategori-barang').value,
-        kondisi: document.getElementById('kondisi-barang').value,
-        harga_estimasi: Number(document.getElementById('harga-barang').value),
-        gambar_url: "https://via.placeholder.com/150", // Placeholder gambar
-        createdAt: new Date()
-    };
+    const fileInput = document.getElementById('foto-barang');
+    const file = fileInput.files[0];
+
+    // Validasi Ukuran File (Penting untuk Base64 agar Firestore tidak berat)
+    if (file && file.size > 1048487) { // 1MB Limit
+        return Swal.fire('File Terlalu Besar', 'Gunakan foto di bawah 1MB agar performa stabil.', 'warning');
+    }
+
+    Swal.fire({
+        title: 'Menyimpan ke Cloud...',
+        text: 'Sedang memproses penyimpanan',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
 
     try {
-        await addDoc(itemsCol, newData); // Mengirim data ke Firestore [cite: 33, 43]
+        let finalImageUrl = "https://via.placeholder.com/150";
+        
+        if (file) {
+            finalImageUrl = await convertBase64(file);
+        }
+
+        const newData = {
+            nama_barang: document.getElementById('nama-barang').value,
+            kategori: document.getElementById('kategori-barang').value,
+            kondisi: document.getElementById('kondisi-barang').value,
+            harga_estimasi: Number(document.getElementById('harga-barang').value),
+            gambar_url: finalImageUrl, 
+            createdAt: new Date()
+        };
+
+        await addDoc(itemsCol, newData); 
+        
         addForm.reset();
-        alert("Data koleksi berhasil disimpan ke Cloud!");
+        Swal.fire('Berhasil!', 'Data dan foto berhasil disimpan di Firestore.', 'success');
     } catch (error) {
-        console.error("Gagal menyimpan data:", error);
+        Swal.fire('Gagal!', error.message, 'error');
     }
 });
 
-// Integrasi Fitur Lama: Search (Tugas 2) [cite: 24]
+// 3. DELETE: Hapus Data
+window.hapusKoleksi = async (id) => {
+    const result = await Swal.fire({
+        title: 'Hapus koleksi ini?',
+        text: "Data akan hilang permanen dari database!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Ya, Hapus!'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await deleteDoc(doc(db, "items", id));
+            Swal.fire('Terhapus!', 'Data berhasil dibuang.', 'success');
+        } catch (error) {
+            Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus.', 'error');
+        }
+    }
+};
+
+// 4. SEARCH
 searchInput.addEventListener('input', (e) => {
     const val = e.target.value.toLowerCase();
     const filtered = allData.filter(item => 
@@ -87,38 +130,3 @@ searchInput.addEventListener('input', (e) => {
     );
     renderData(filtered);
 });
-
-
-window.hapusKoleksi = async (id) => {
-    // 1. Munculkan Konfirmasi (UI/UX)
-    const result = await Swal.fire({
-        title: 'Apakah anda yakin?',
-        text: "Koleksi ini akan dihapus permanen dari Cloud!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Ya, Hapus!'
-    });
-
-    // 2. Jika user klik "Ya"
-    if (result.isConfirmed) {
-        try {
-            // Referensi ke dokumen spesifik berdasarkan ID
-            const docRef = doc(db, "items", id); 
-            
-            // Proses hapus di Firestore
-            await deleteDoc(docRef);
-
-            // Notifikasi Berhasil
-            Swal.fire(
-                'Terhapus!',
-                'Koleksi berhasil dihilangkan.',
-                'success'
-            );
-        } catch (error) {
-            console.error("Error saat menghapus:", error);
-            Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus data.', 'error');
-        }
-    }
-};
